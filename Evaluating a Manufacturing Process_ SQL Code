@@ -1,0 +1,34 @@
+select
+operator,
+row_number,
+height,
+avg_height,
+stdv_height,
+ucl,
+lcl,
+case 
+when height not between lcl and ucl
+	then TRUE
+	ELSE FALSE 
+END Alert
+from
+(select a.*,
+a.avg_height + (3*(a.stdv_height/sqrt(5))) as ucl,  
+a.avg_height - (3*(a.stdv_height/sqrt(5))) as lcl 
+from
+(SELECT
+item_no,
+ROW_NUMBER() OVER(PARTITION BY operator ORDER BY item_no) AS row_number,
+ height,
+ operator,
+ AVG(height) OVER(PARTITION BY operator ORDER BY item_no ROWS BETWEEN
+         4 PRECEDING 
+        AND 
+		 CURRENT ROW  ) AS avg_height,
+ STDDEV(height) OVER(PARTITION BY operator ORDER BY item_no ROWS BETWEEN  
+         4 PRECEDING 
+        AND 
+		 CURRENT ROW  )  AS stdv_height
+FROM manufacturing_parts) a)b
+where row_number >=5
+order by item_no
